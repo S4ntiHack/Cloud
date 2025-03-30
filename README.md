@@ -10,7 +10,7 @@ Nota: Cada uno de los scripts estan diseñados para **Linux**
 
 --> Configuración de la clave de AWS Cli **~/.aws/credentials)**
 
---> Verificación de la conexión con el comando 'aws s3 ls'
+--> Verificación de la conexión con el comando '**aws s3 ls**'
 
 [2] Clonar el repositorio
 
