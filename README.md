@@ -1,6 +1,6 @@
-#============================== <br>
+#============================ <br>
 Author --> Santiago Montenegro <br>
-#==============================
+#============================
 
 Nota: Cada uno de los scripts estan diseñados para **Linux**
 
