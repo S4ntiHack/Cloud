@@ -1,0 +1,104 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: VPC con Subredes Pública y Privada - IaC
+
+Resources:
+  # VPC (150.50.0.0/16)
+  IaCVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 150.50.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: IaC-VPC
+
+  # Internet Gateway
+  IaCInternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: IaC-InternetGateway
+
+  # Attach Internet Gateway to VPC
+  IaCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref IaCVPC
+      InternetGatewayId: !Ref IaCInternetGateway
+
+  # Subred Pública (150.50.10.0/24)
+  IaCPublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref IaCVPC
+      CidrBlock: 150.50.10.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: IaC-PublicSubnet
+
+  # Route Table Pública
+  IaCPublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref IaCVPC
+      Tags:
+        - Key: Name
+          Value: IaC-PublicRouteTable
+
+  # Ruta hacia Internet (0.0.0.0/0)
+  IaCPublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: IaCGatewayAttachment
+    Properties:
+      RouteTableId: !Ref IaCPublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref IaCInternetGateway
+
+  # Asociar Subred Pública a la Route Table Pública
+  IaCPublicSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref IaCPublicSubnet
+      RouteTableId: !Ref IaCPublicRouteTable
+
+  # Subred Privada (150.50.20.0/24)
+  IaCPrivateSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref IaCVPC
+      CidrBlock: 150.50.20.0/24
+      AvailabilityZone: !Select [1, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: IaC-PrivateSubnet
+
+  # Route Table Privada (sin acceso a Internet)
+  IaCPrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref IaCVPC
+      Tags:
+        - Key: Name
+          Value: IaC-PrivateRouteTable
+
+  # Asociar Subred Privada a la Route Table Privada
+  IaCPrivateSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref IaCPrivateSubnet
+      RouteTableId: !Ref IaCPrivateRouteTable
+
+Outputs:
+  VPCId:
+    Description: ID de la VPC
+    Value: !Ref IaCVPC
+  PublicSubnetId:
+    Description: ID de la Subred Pública
+    Value: !Ref IaCPublicSubnet
+  PrivateSubnetId:
+    Description: ID de la Subred Privada
+    Value: !Ref IaCPrivateSubnet

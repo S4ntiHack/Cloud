@@ -1,0 +1,296 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: VPC con Subredes Publica/Privada, NAT Gateway, Instancias Ubuntu/Windows - IaC
+
+Parameters:
+  KeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Description: Nombre del KeyPair para acceso SSH/RDP
+    Default: vockey
+
+  UbuntuAMI:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/canonical/ubuntu/server/22.04/stable/current/amd64/hvm/ebs-gp2/ami-id
+
+  WindowsAMI:
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
+    Default: /aws/service/ami-windows-latest/Windows_Server-2022-English-Full-Base
+
+Resources:
+  # ========== VPC & Networking ========== #
+  IaCVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 150.50.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: IaC-VPC
+
+  IaCInternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: IaC-InternetGateway
+
+  IaCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    DependsOn:
+      - IaCVPC
+      - IaCInternetGateway
+    Properties:
+      VpcId: !Ref IaCVPC
+      InternetGatewayId: !Ref IaCInternetGateway
+
+  # Subred Pública
+  IaCPublicSubnet:
+    Type: AWS::EC2::Subnet
+    DependsOn: 
+      - IaCVPC
+      - IaCGatewayAttachment
+    Properties:
+      VpcId: !Ref IaCVPC
+      CidrBlock: 150.50.10.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: IaC-PublicSubnet
+
+  # Subred Privada
+  IaCPrivateSubnet:
+    Type: AWS::EC2::Subnet
+    DependsOn: 
+      - IaCVPC
+      - IaCGatewayAttachment
+    Properties:
+      VpcId: !Ref IaCVPC
+      CidrBlock: 150.50.20.0/24
+      AvailabilityZone: !Select [1, !GetAZs '']
+      Tags:
+        - Key: Name
+          Value: IaC-PrivateSubnet
+
+  # Elastic IP para NAT Gateway
+  IaCNATEIP:
+    Type: AWS::EC2::EIP
+    DependsOn: 
+      - IaCGatewayAttachment
+      - IaCPublicSubnet
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: IaC-NAT-EIP
+
+  # NAT Gateway
+  IaCNATGateway:
+    Type: AWS::EC2::NatGateway
+    DependsOn: 
+      - IaCNATEIP
+      - IaCPublicSubnet
+    Properties:
+      AllocationId: !GetAtt IaCNATEIP.AllocationId
+      SubnetId: !Ref IaCPublicSubnet
+      Tags:
+        - Key: Name
+          Value: IaC-NATGateway
+
+  # Route Table Pública
+  IaCPublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    DependsOn: 
+      - IaCVPC
+      - IaCGatewayAttachment
+    Properties:
+      VpcId: !Ref IaCVPC
+      Tags:
+        - Key: Name
+          Value: IaC-PublicRouteTable
+
+  IaCPublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: 
+      - IaCPublicRouteTable
+      - IaCInternetGateway
+    Properties:
+      RouteTableId: !Ref IaCPublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref IaCInternetGateway
+
+  IaCPublicSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    DependsOn: 
+      - IaCPublicRoute
+      - IaCPublicSubnet
+    Properties:
+      SubnetId: !Ref IaCPublicSubnet
+      RouteTableId: !Ref IaCPublicRouteTable
+
+  # Route Table Privada
+  IaCPrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    DependsOn: 
+      - IaCVPC
+      - IaCGatewayAttachment
+    Properties:
+      VpcId: !Ref IaCVPC
+      Tags:
+        - Key: Name
+          Value: IaC-PrivateRouteTable
+
+  IaCPrivateRoute:
+    Type: AWS::EC2::Route
+    DependsOn: 
+      - IaCPrivateRouteTable
+      - IaCNATGateway
+    Properties:
+      RouteTableId: !Ref IaCPrivateRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref IaCNATGateway
+
+  IaCPrivateSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    DependsOn: 
+      - IaCPrivateRoute
+      - IaCPrivateSubnet
+    Properties:
+      SubnetId: !Ref IaCPrivateSubnet
+      RouteTableId: !Ref IaCPrivateRouteTable
+
+  # Security Group para instancias PÚBLICAS
+  IaCPublicSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    DependsOn: 
+      - IaCVPC
+      - IaCGatewayAttachment
+    Properties:
+      GroupDescription: "Acceso SSH/RDP desde Internet"
+      VpcId: !Ref IaCVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+          Description: "SSH desde Internet"
+        - IpProtocol: tcp
+          FromPort: 3389
+          ToPort: 3389
+          CidrIp: 0.0.0.0/0
+          Description: "RDP desde Internet"
+
+  # Security Group para instancias PRIVADAS
+  IaCPrivateSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    DependsOn: 
+      - IaCVPC
+      - IaCPublicSecurityGroup
+    Properties:
+      GroupDescription: "Acceso solo desde instancias publicas"
+      VpcId: !Ref IaCVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          SourceSecurityGroupId: !GetAtt IaCPublicSecurityGroup.GroupId
+          Description: "SSH desde instancias publicas"
+        - IpProtocol: tcp
+          FromPort: 3389
+          ToPort: 3389
+          SourceSecurityGroupId: !GetAtt IaCPublicSecurityGroup.GroupId
+          Description: "RDP desde instancias publicas"
+
+  # ========== INSTANCIAS EC2 ========== #
+  # Ubuntu en subred pública
+  IaCUbuntuPublic:
+    Type: AWS::EC2::Instance
+    DependsOn: 
+      - IaCPublicSubnetRouteTableAssociation
+      - IaCPublicSecurityGroup
+    Properties:
+      ImageId: !Ref UbuntuAMI
+      InstanceType: t2.micro
+      KeyName: !Ref KeyName
+      NetworkInterfaces:
+        - DeviceIndex: 0
+          SubnetId: !Ref IaCPublicSubnet
+          GroupSet: [!GetAtt IaCPublicSecurityGroup.GroupId]
+          AssociatePublicIpAddress: true
+      Tags:
+        - Key: Name
+          Value: IaC-Ubuntu-Public
+
+  # Windows en subred pública
+  IaCWindowsPublic:
+    Type: AWS::EC2::Instance
+    DependsOn: 
+      - IaCUbuntuPublic
+      - IaCPublicSubnetRouteTableAssociation
+    Properties:
+      ImageId: !Ref WindowsAMI
+      InstanceType: t2.micro
+      KeyName: !Ref KeyName
+      NetworkInterfaces:
+        - DeviceIndex: 0
+          SubnetId: !Ref IaCPublicSubnet
+          GroupSet: [!GetAtt IaCPublicSecurityGroup.GroupId]
+          AssociatePublicIpAddress: true
+      Tags:
+        - Key: Name
+          Value: IaC-Windows-Public
+
+  # Ubuntu en subred privada
+  IaCUbuntuPrivate:
+    Type: AWS::EC2::Instance
+    DependsOn: 
+      - IaCPrivateSubnetRouteTableAssociation
+      - IaCNATGateway
+      - IaCPrivateSecurityGroup
+    Properties:
+      ImageId: !Ref UbuntuAMI
+      InstanceType: t2.micro
+      KeyName: !Ref KeyName
+      SubnetId: !Ref IaCPrivateSubnet
+      SecurityGroupIds:
+        - !GetAtt IaCPrivateSecurityGroup.GroupId
+      Tags:
+        - Key: Name
+          Value: IaC-Ubuntu-Private
+
+  # Windows en subred privada
+  IaCWindowsPrivate:
+    Type: AWS::EC2::Instance
+    DependsOn: 
+      - IaCUbuntuPrivate
+      - IaCPrivateSubnetRouteTableAssociation
+    Properties:
+      ImageId: !Ref WindowsAMI
+      InstanceType: t2.micro
+      KeyName: !Ref KeyName
+      SubnetId: !Ref IaCPrivateSubnet
+      SecurityGroupIds:
+        - !GetAtt IaCPrivateSecurityGroup.GroupId
+      Tags:
+        - Key: Name
+          Value: IaC-Windows-Private
+
+Outputs:
+  VPCId:
+    Value: !Ref IaCVPC
+    Description: ID de la VPC
+  PublicSubnetId:
+    Value: !Ref IaCPublicSubnet
+    Description: ID de la subred publica
+  PrivateSubnetId:
+    Value: !Ref IaCPrivateSubnet
+    Description: ID de la subred privada
+  UbuntuPublicIP:
+    Value: !GetAtt IaCUbuntuPublic.PublicIp
+    Description: IP publica de Ubuntu
+  WindowsPublicIP:
+    Value: !GetAtt IaCWindowsPublic.PublicIp
+    Description: IP publica de Windows
+  NATGatewayIP:
+    Value: !GetAtt IaCNATEIP.AllocationId
+    Description: IP del NAT Gateway
