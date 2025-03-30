@@ -1,5 +1,5 @@
-#=======================================
-      Author --> Santiago Montenegro 
+#======================================
+Author --> Santiago Montenegro 
 =======================================#
 
 Nota: Cada uno de los scripts estan diseñados para **Linux**
