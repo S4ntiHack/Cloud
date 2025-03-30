@@ -6,7 +6,7 @@ Nota: Cada uno de los scripts estan diseñados para **Linux**
 
 [+] Pasos para utilizar los scripts:
 
-[1] Conectarte con AWS Cli por medio de la terminal (Comandos para conexión)
+[1] Conectarte con **AWS Cli** por medio de la terminal (Comandos para conexión)
 
 --> Configuración de la clave de AWS Cli **~/.aws/credentials)**
 
