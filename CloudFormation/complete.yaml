@@ -1,9 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: VPC con Subredes Publica/Privada, NAT Gateway, Instancias Ubuntu/Windows - IaC
 
-#================================
-# Author --> Santiago Montenegro
-#================================
 Parameters:
   KeyName:
     Type: AWS::EC2::KeyPair::KeyName

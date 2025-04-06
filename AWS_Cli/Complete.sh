@@ -256,10 +256,10 @@ create_security_groups() {
     local vpc_id=$1 public_subnet_cidr=$2
     echo "Creando grupos de seguridad..." >&2
     
-    # Grupo público (acceso SSH y HTTP desde cualquier lugar)
+    # Grupo público (acceso SSH y HTTP/HTTPS desde cualquier lugar)
     local public_sg=$(aws ec2 create-security-group \
         --group-name "proof-sg-public" \
-        --description "Public security group for SSH and HTTP" \
+        --description "Public security group for SSH and HTTP/HTTPS" \
         --vpc-id "$vpc_id" \
         --tag-specifications "ResourceType=security-group,Tags=[{Key=Name,Value=proof-sg-public}]" \
         --query 'GroupId' \
@@ -281,10 +281,28 @@ create_security_groups() {
         --protocol tcp --port 80 --cidr 0.0.0.0/0 \
         --region $REGION >/dev/null
         
+    # HTTPS (puerto 443) desde cualquier lugar (SOLO para Ubuntu público)
+    aws ec2 authorize-security-group-ingress \
+        --group-id "$public_sg" \
+        --protocol tcp --port 443 --cidr 0.0.0.0/0 \
+        --region $REGION >/dev/null
+        
     # RDP (puerto 3389) desde cualquier lugar (para Windows)
     aws ec2 authorize-security-group-ingress \
         --group-id "$public_sg" \
         --protocol tcp --port 3389 --cidr 0.0.0.0/0 \
+        --region $REGION >/dev/null
+
+    # DNS (puerto 53) UDP desde cualquier lugar para el servidor Ubuntu
+    aws ec2 authorize-security-group-ingress \
+        --group-id "$public_sg" \
+        --protocol udp --port 53 --cidr 0.0.0.0/0 \
+        --region $REGION >/dev/null
+
+    # DNS (puerto 53) TCP desde cualquier lugar para el servidor Ubuntu
+    aws ec2 authorize-security-group-ingress \
+        --group-id "$public_sg" \
+        --protocol tcp --port 53 --cidr 0.0.0.0/0 \
         --region $REGION >/dev/null
 
     # Grupo privado (solo acceso desde subred pública)
@@ -324,6 +342,21 @@ launch_instance() {
     local name=$1 ami=$2 subnet=$3 sg=$4 is_public=$5
     echo "Lanzando instancia $name..." >&2
 
+    # User data para instancias Ubuntu en subred pública
+    local user_data=""
+    if [[ "$name" == "proof-ubuntu-public" ]]; then
+        user_data=$(cat <<EOF
+#!/bin/bash
+apt-get update -y
+apt-get install -y apache2 mysql-server php mysql-client libapache2-mod-php php-mysql bind9
+systemctl enable apache2
+systemctl start apache2
+echo "<?php phpinfo(); ?>" > /var/www/html/info.php
+chown -R www-data:www-data /var/www/html
+EOF
+        )
+    fi
+
     local instance_id=$(aws ec2 run-instances \
         --image-id "$ami" \
         --instance-type "$INSTANCE_TYPE" \
@@ -331,12 +364,21 @@ launch_instance() {
         --subnet-id "$subnet" \
         --security-group-ids "$sg" \
         $( [ "$is_public" = "true" ] && echo "--associate-public-ip-address" ) \
+        $( [ -n "$user_data" ] && echo "--user-data" "$user_data" ) \
         --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=$name}]" \
         --query 'Instances[0].InstanceId' \
         --output text \
         --region $REGION)
 
     [ -z "$instance_id" ] && { echo "ERROR: No se pudo lanzar instancia $name" >&2; cleanup_resources; }
+
+    # Habilitar DNS para instancias públicas
+    if [ "$is_public" = "true" ]; then
+        aws ec2 modify-instance-attribute \
+            --instance-id "$instance_id" \
+            --no-source-dest-check \
+            --region $REGION >/dev/null
+    fi
 
     echo "Esperando a que la instancia $name esté disponible..." >&2
     aws ec2 wait instance-running --instance-ids "$instance_id" --region $REGION
@@ -450,6 +492,7 @@ main() {
     echo "- Ubuntu: $(echo "$UBUNTU_PRIVATE_INFO" | awk '{print $1}') - IP Privada: $(echo "$UBUNTU_PRIVATE_INFO" | awk '{print $3}')"
     echo -e "\nPara conectarte:"
     echo "SSH a Ubuntu pública: ssh -i $KEY_PAIR_NAME.pem ubuntu@$(echo "$UBUNTU_PUBLIC_INFO" | awk '{print $2}')"
+    echo "HTTPS a Ubuntu pública: https://$(echo "$UBUNTU_PUBLIC_INFO" | awk '{print $2}')"
     echo "Windows pública: aws ec2 get-password-data --instance-id $(echo "$WINDOWS_PUBLIC_INFO" | awk '{print $1}') --priv-launch-key $KEY_PAIR_NAME --region $REGION"
 }
 

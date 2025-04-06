@@ -1,9 +1,5 @@
 #!/bin/bash
 
-#===============================
-# Author --> Santiago Montenegro
-#===============================
-
 # Configuración
 REGION="us-east-1"
 VPC_NAME="proof-vpc-infra"

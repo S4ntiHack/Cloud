@@ -2,7 +2,10 @@
 Author --> Santiago Montenegro <br>
 #===========================
 
-Nota: Cada uno de los scripts estan diseñados para **Linux**
+Notas:
+--> Cada uno de los scripts estan diseñados para **Linux**
+--> Cada uno de los recursos proporcionados está listo para su funcionamiento.
+**"Recordar adecuar el script o plantilla conforme a lo que busque realizar"**
 
 [+] Pasos para utilizar los scripts:
 
@@ -24,15 +27,16 @@ git clone https://github.com/S4ntiHack/Cloud
 cd Cloud
 ```
 
-[4] Asiganción de permisos 
+[4] Asignación de permisos de ejecución para el script
 
 ```bash
-chmod +x vpc_ec2_all.sh
+chmod +x 'script_escogido'.sh
 ```
 
 [5] Ejecución del script
 ```bash
-./vpc_ec2_all.sh
+./'script_escogido'.sh
 ```
 
 [+] Ya estamos ready ;)
+

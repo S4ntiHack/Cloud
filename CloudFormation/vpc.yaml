@@ -1,10 +1,6 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: VPC con Subredes Pública y Privada - IaC
 
-#================================
-# Author --> Santiago Montenegro
-#================================
-
 Resources:
   # VPC (150.50.0.0/16)
   IaCVPC:
