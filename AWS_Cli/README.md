@@ -28,7 +28,7 @@ Internet <br>
 │ ├── Public: "proof-sg-public" (Reglas: RDP/SSH abiertos a internet) <br>
 │ └── Private: "proof-sg-private" (Reglas: Restringidas a VPC) <br>
 │ <br>
-└── KEY PAIR: "vockey" (Existente, usada para todas las instancias) <br>
+└── Key: "vockey" (Existente, usada para todas las instancias) <br>
 <br>
 [ Nota: La VPC y subredes deben existir previamente (el script no las crea) ] <br>
 <br>
@@ -127,7 +127,7 @@ Internet <br>
 │ ├─ Entrada: Todo tráfico interno VPC (170.10.0.0/16) <br>
 │ └─ Salida: Todo permitido (via NAT) <br>
 │ <br>
-└── KEY PAIR: "vockey" (Existente, usada para todas las instancias) <br>
+└── Key: "vockey" (Existente, usada para todas las instancias) <br>
 <br>
 [ Notas técnicas ] <br>
 1. La VPC SÍ es creada por el script (enable-dns-hostnames=true) <br>
