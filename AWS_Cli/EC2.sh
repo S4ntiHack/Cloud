@@ -96,7 +96,7 @@ UBUNTU_PRIVATE_IP=$(aws ec2 describe-instances --instance-ids $UBUNTU_PRIVATE_ID
 # Mostrar resumen
 echo ""
 echo "========================================"
-echo "Instancias creadas exitosamente"
+echo "Instancias creadas exitosamente ;)"
 echo "========================================"
 echo ""
 echo "INSTANCIAS PÚBLICAS:"

@@ -13,7 +13,7 @@ Resources:
         - Key: Name
           Value: IaC-VPC
 
-  # Internet Gateway
+  # Internet Gateway 
   IaCInternetGateway:
     Type: AWS::EC2::InternetGateway
     Properties:
@@ -76,7 +76,7 @@ Resources:
         - Key: Name
           Value: IaC-PrivateSubnet
 
-  # Route Table Privada (sin acceso a Internet)
+  # Route Table Privada (sin acceso a Internet).
   IaCPrivateRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:

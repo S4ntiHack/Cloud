@@ -195,7 +195,7 @@ ALLOCATION_ID=$(aws ec2 describe-addresses --public-ips "$ELASTIC_IP" --query 'A
 aws ec2 associate-address --instance-id "$INSTANCE_ID" --public-ip "$ELASTIC_IP"
 
 # --- 8. Mostrar resultados ---
-echo -e "\n--- DESPLIEGUE COMPLETADO: ${FULL_NAME} ---"
+echo -e "\n--- DESPLIEGUE COMPLETADO: ${FULL_NAME} ;) ---"
 echo "Instancia ID: $INSTANCE_ID"
 echo "IP Pública: $ELASTIC_IP"
 echo "Acceso SSH: ssh -i ${KEY_NAME}.pem ubuntu@$ELASTIC_IP"

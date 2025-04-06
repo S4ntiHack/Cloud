@@ -180,7 +180,7 @@ Resources:
           CidrIp: 0.0.0.0/0
           Description: "RDP desde Internet"
 
-  # Security Group para instancias PRIVADAS
+  # Security Group para instancias Privadas
   IaCPrivateSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     DependsOn: 

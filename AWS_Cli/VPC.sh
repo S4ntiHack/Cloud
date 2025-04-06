@@ -175,7 +175,7 @@ PRIVATE_SG_ID=$(aws ec2 create-security-group \
     --query 'GroupId' \
     --output text)
 
-echo "Configuración completada:"
+echo "Configuración completada ;)"
 echo "========================================"
 echo "VPC:"
 echo "  ID: $VPC_ID"

@@ -1,4 +1,4 @@
-## Utilidad de los scripts: <br>
+# Utilidad de los scripts: <br>
 **·EC2.sh** <br>
 <br>
 *Estructura del script:* <br>

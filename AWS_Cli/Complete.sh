@@ -484,7 +484,7 @@ main() {
     UBUNTU_PRIVATE_INFO=$(launch_instance "proof-ubuntu-private" "$UBUNTU_AMI" "$PRIVATE_SUBNET_ID" "$PRIVATE_SG_ID" "false")
 
     # Mostrar resumen
-    echo -e "\n=== DESPLIEGUE COMPLETADO CON ÉXITO ==="
+    echo -e "\n=== DESPLIEGUE COMPLETADO CON ÉXITO ;) ==="
     echo "VPC ID: $VPC_ID"
     echo "Subred Pública: $PUBLIC_SUBNET_ID"
     echo "Subred Privada: $PRIVATE_SUBNET_ID"
