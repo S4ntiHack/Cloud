@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #=================================
-# Author --> Santiago Montenegro
+# Autor --> Santiago Montenegro
 #=================================
 
 # Configuración general
@@ -345,16 +345,17 @@ launch_instance() {
     # User data para instancias Ubuntu en subred pública
     local user_data=""
     if [[ "$name" == "proof-ubuntu-public" ]]; then
-        user_data=$(cat <<EOF
-#!/bin/bash
+        user_data="#!/bin/bash
 apt-get update -y
 apt-get install -y apache2 mysql-server php mysql-client libapache2-mod-php php-mysql bind9
 systemctl enable apache2
 systemctl start apache2
-echo "<?php phpinfo(); ?>" > /var/www/html/info.php
-chown -R www-data:www-data /var/www/html
-EOF
-        )
+echo \"<?php phpinfo(); ?>\" > /var/www/html/info.php
+chown -R www-data:www-data /var/www/html"
+        
+        # Crear archivo temporal para user data
+        local temp_file=$(mktemp)
+        echo "$user_data" > "$temp_file"
     fi
 
     local instance_id=$(aws ec2 run-instances \
@@ -364,11 +365,14 @@ EOF
         --subnet-id "$subnet" \
         --security-group-ids "$sg" \
         $( [ "$is_public" = "true" ] && echo "--associate-public-ip-address" ) \
-        $( [ -n "$user_data" ] && echo "--user-data" "$user_data" ) \
+        $( [ -n "$user_data" ] && echo "--user-data" "file://$temp_file" ) \
         --tag-specifications "ResourceType=instance,Tags=[{Key=Name,Value=$name}]" \
         --query 'Instances[0].InstanceId' \
         --output text \
         --region $REGION)
+
+    # Eliminar archivo temporal si existe
+    [ -n "$temp_file" ] && rm -f "$temp_file"
 
     [ -z "$instance_id" ] && { echo "ERROR: No se pudo lanzar instancia $name" >&2; cleanup_resources; }
 

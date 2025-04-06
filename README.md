@@ -1,11 +1,11 @@
 #=========================== <br>
-Author --> Santiago Montenegro <br>
+Autor --> Santiago Montenegro <br>
 #===========================
 
-Notas:
---> Cada uno de los scripts estan diseñados para **Linux**
---> Cada uno de los recursos proporcionados está listo para su funcionamiento.
-**"Recordar adecuar el script o plantilla conforme a lo que busque realizar"**
+Notas: <br>
+--> Cada uno de los scripts estan diseñados para **Linux** <br>
+--> Cada uno de los recursos proporcionados está listo para su funcionamiento. <br>
+**"Recordar adecuar el script o plantilla conforme a lo que busque realizar"** <br>
 
 [+] Pasos para utilizar los scripts:
 
@@ -39,4 +39,3 @@ chmod +x 'script_escogido'.sh
 ```
 
 [+] Ya estamos ready ;)
-
